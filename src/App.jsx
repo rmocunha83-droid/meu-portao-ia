@@ -131,7 +131,7 @@ function Header() {
         <LinkButton to="/simular">Simular agora</LinkButton>
         <a
           href="/empresas"
-          className="nav-link"
+          className="nav-link nav-partner-link"
           onClick={(event) => {
             event.preventDefault();
             setOpen(false);

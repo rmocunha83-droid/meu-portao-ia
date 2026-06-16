@@ -41,10 +41,12 @@ p { color: var(--muted); line-height: 1.65; }
 .site-header { width: min(1440px, calc(100% - 56px)); height: 96px; margin: auto; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 20; }
 .logo { font-family: "Barlow Condensed", sans-serif; font-size: 2.15rem; font-weight: 800; letter-spacing: -.04em; white-space: nowrap; }
 .logo span { color: var(--blue); }
-.nav { display: flex; align-items: center; gap: 34px; }
+.nav { display: flex; align-items: center; gap: 14px; }
 .nav .button { min-height: 48px; padding: 0 24px; }
-.nav-link { font-size: .92rem; font-weight: 650; }
-.nav-link:hover { color: var(--blue); }
+.nav-link { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 0 18px; border-radius: 5px; font-size: .92rem; font-weight: 750; white-space: nowrap; }
+.nav-link:hover { color: var(--green); background: #edf3ed; }
+.nav-partner-link { border: 1px solid #cfc5b8; color: var(--green); background: rgba(255,250,241,.72); }
+.nav-partner-link:hover { border-color: var(--green); }
 .menu-button { display: none; border: 0; background: transparent; font-size: 1.55rem; padding: 10px; }
 .button { min-height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 8px; background: var(--blue); color: white; padding: 0 26px; font-weight: 700; cursor: pointer; transition: transform .2s, background .2s, box-shadow .2s; }
 .button:hover { transform: translateY(-2px); background: var(--blue-dark); box-shadow: 0 12px 28px rgba(6,71,220,.18); }
@@ -368,6 +370,7 @@ h2 { font-size: clamp(2rem, 3.4vw, 3.25rem); line-height: 1.08; }
 .site-header {
   width: min(1400px, calc(100% - 64px));
   height: 88px;
+  background: var(--paper);
 }
 
 .logo {
