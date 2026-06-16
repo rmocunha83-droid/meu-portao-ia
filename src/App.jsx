@@ -701,7 +701,8 @@ function PartnerFormContent({ backendEnabled, onSubmitPartnerLead }) {
         owner: field("owner"),
         whatsapp: field("whatsapp"),
         city: field("city"),
-        volume: field("volume"),
+        serviceType: field("serviceType"),
+        serviceRegion: field("serviceRegion"),
         source: "partner-page",
         pagePath: window.location.pathname,
       });
@@ -719,75 +720,201 @@ function PartnerFormContent({ backendEnabled, onSubmitPartnerLead }) {
       <label>Nome da empresa<input required name="company" placeholder="Nome da sua empresa" /></label>
       <label>Responsável<input required name="owner" placeholder="Seu nome" /></label>
       <label>WhatsApp<input required name="whatsapp" type="tel" placeholder="(11) 99999-9999" /></label>
-      <label>Cidade de atuação<input required name="city" placeholder="Cidade principal" /></label>
-      <label className="full">Quantos portões instala por mês?
-        <select required name="volume" defaultValue="">
-          <option value="" disabled>Selecione uma faixa</option>
-          <option>Até 5</option><option>De 6 a 15</option><option>De 16 a 30</option><option>Mais de 30</option>
+      <label>Cidade/Estado<input required name="city" placeholder="Ex.: Indaiatuba, SP" /></label>
+      <label className="full">Tipo de serviço
+        <select required name="serviceType" defaultValue="">
+          <option value="" disabled>Selecione</option>
+          <option>Fabricação</option>
+          <option>Instalação</option>
+          <option>Automação</option>
+          <option>Manutenção</option>
+          <option>Todos</option>
         </select>
       </label>
+      <label className="full">Região atendida<input required name="serviceRegion" placeholder="Ex.: Indaiatuba, Salto, Itu e região" /></label>
       {error && <p className="form-error full">{error}</p>}
       <button className="button full" disabled={submitting}>
-        {submitting ? "Enviando..." : <>Quero ser parceiro <FiArrowRight /></>}
+        {submitting ? "Enviando..." : <>Solicitar cadastro de parceiro <FiArrowRight /></>}
       </button>
+      <p className="form-microcopy full">Entraremos em contato para validar sua região de atendimento e liberar seu mês gratuito.</p>
     </form>
   );
 }
 
 function CompaniesPage({ backendEnabled }) {
-  const plans = [
-    ["Inicial", "R$ 99", "Até 20 leads", ["Área de atuação local", "Preferências do cliente", "Suporte por e-mail"]],
-    ["Profissional", "R$ 199", "Até 60 leads", ["Mais cidades de atuação", "Prioridade na distribuição", "Relatório de desempenho"]],
-    ["Parceiro", "Sob consulta", "Leads ilimitados", ["Destaque regional", "Integração comercial", "Atendimento dedicado"]],
+  const marketProblems = [
+    "Não sabem qual modelo combina com a casa.",
+    "Têm dificuldade para visualizar o resultado.",
+    "Pedem orçamento sem saber exatamente o que querem.",
+    "Falam com várias empresas e muitas vezes não fecham.",
+  ];
+  const partnerBenefits = [
+    [<FiUsers />, "Leads mais qualificados", "Você recebe contatos de pessoas que já demonstraram interesse real e visualizaram possibilidades para a própria casa."],
+    [<FiClock />, "Menos perda de tempo", "O cliente chega com uma ideia mais clara do que procura, facilitando a conversa e o orçamento."],
+    [<FiCheck />, "Mais chances de fechar", "Quando o cliente visualiza o resultado antes, ele tende a se envolver mais com o projeto."],
+    [<FiZap />, "Diferenciação no mercado", "Sua empresa aparece em uma jornada moderna e visual, não só em indicação ou conversa de WhatsApp."],
+    [<FiMapPin />, "Presença digital local", "A plataforma ajuda sua empresa a ser encontrada por clientes que pesquisam portões na sua região."],
+    [<FiShield />, "Potencial de ticket alto", "Um único serviço fechado pode pagar vários meses da assinatura."],
+  ];
+  const pricingBenefits = [
+    "Recebimento de leads qualificados da sua região",
+    "Página de parceiro dentro da plataforma",
+    "Participação na rede de fornecedores",
+    "Leads de clientes que fizeram simulação com IA",
+    "Possibilidade de receber fotos, preferências e dados básicos do projeto",
+    "Suporte inicial para cadastro",
+    "Sem fidelidade no primeiro mês",
+  ];
+  const faqItems = [
+    ["Sou obrigado a continuar depois do mês grátis?", "Não. O primeiro mês serve para você testar a plataforma. Depois, você decide se quer continuar no plano de R$ 299/mês."],
+    ["A plataforma fabrica portões?", "Não. A plataforma conecta clientes interessados a empresas parceiras especializadas."],
+    ["Os leads já vêm prontos para orçamento?", "Eles vêm mais qualificados do que um contato comum, porque o cliente já passou pela etapa de simulação e informou dados básicos. A visita técnica e o orçamento final continuam sendo responsabilidade do parceiro."],
+    ["Posso atender apenas minha cidade ou região?", "Sim. O parceiro informa as regiões onde atende para receber oportunidades compatíveis."],
+    ["Um único cliente pode pagar a assinatura?", "Sim. Como portões normalmente têm ticket de venda alto, um único serviço fechado pode compensar o valor mensal do plano."],
   ];
   return (
     <>
       <Header />
-      <main>
-        <section className="business-hero">
-          <div className="shell business-grid">
-            <div>
-              <p className="eyebrow light">Meu Portão IA para empresas</p>
-              <h1>Receba clientes que já sabem o modelo de portão que desejam</h1>
-              <p>Transforme inspiração em oportunidades comerciais mais claras, com foto, localização e intenção de compra.</p>
-              <a href="#cadastro" className="button button-light">Quero receber leads <FiArrowRight /></a>
+      <main className="partners-page">
+        <section className="partner-hero">
+          <div className="shell partner-hero-grid">
+            <div className="partner-hero-copy">
+              <p className="eyebrow">Seja parceiro Meu Portão IA</p>
+              <h1>Receba clientes interessados em trocar ou instalar portões na sua região</h1>
+              <p>Clientes enviam a foto da casa, simulam modelos de portões com IA e chegam até você mais preparados para pedir orçamento.</p>
+              <div className="partner-hero-actions">
+                <a href="#cadastro" className="button">Quero ser parceiro <FiArrowRight /></a>
+                <a href="#preco" className="button button-secondary">Testar 1 mês grátis</a>
+              </div>
+              <div className="partner-proof">
+                <strong>Você não está pagando por curiosos.</strong>
+                <span>Você entra em um canal onde o cliente já viu a casa dele com novos modelos de portão e está mais perto de pedir orçamento.</span>
+              </div>
             </div>
-            <img src={assets.wood} alt="Fachada contemporânea com portão ripado" />
+            <div className="partner-hero-card">
+              <span className="free-badge">1º mês grátis</span>
+              <img src={assets.installer} alt="Instalador avaliando projeto de portão com cliente" />
+              <div className="price-ribbon">
+                <small>Plano parceiro</small>
+                <strong>R$ 299/mês</strong>
+                <span>Teste por 30 dias antes de continuar.</span>
+              </div>
+            </div>
           </div>
         </section>
-        <section className="shell business-benefits">
-          <div className="section-heading"><div><p className="eyebrow">Leads com contexto</p><h2>Menos conversa fria. Mais chance de fechar.</h2></div></div>
-          <div className="benefit-grid">
-            {[
-              [<FiImage />, "Foto real da fachada", "Veja o imóvel antes mesmo do primeiro contato."],
-              [<FiSliders />, "Preferência definida", "Entenda material, estilo e abertura desejados."],
-              [<FiMapPin />, "Região informada", "Receba oportunidades dentro da sua área."],
-              [<FiClock />, "Urgência visível", "Priorize quem pretende comprar primeiro."],
-            ].map(([icon, title, text]) => <article key={title}><span>{icon}</span><h3>{title}</h3><p>{text}</p></article>)}
+
+        <section className="shell partner-problem">
+          <div>
+            <p className="eyebrow">O problema do mercado</p>
+            <h2>Muitos orçamentos começam sem clareza.</h2>
+            <p>O cliente não sabe se quer portão de correr, basculante, fechado, vazado, ripado, de alumínio ou de ferro. Isso faz o profissional perder tempo com conversas pouco qualificadas. A plataforma ajuda a transformar curiosidade em intenção real de compra.</p>
           </div>
+          <ul>
+            {marketProblems.map((problem) => <li key={problem}><FiCheck />{problem}</li>)}
+          </ul>
         </section>
-        <section className="pricing-section">
+
+        <section className="partner-how">
           <div className="shell">
-            <div className="section-heading"><div><p className="eyebrow">Planos transparentes</p><h2>Escolha o ritmo da sua operação</h2></div></div>
-            <div className="pricing-grid">
-              {plans.map(([name, price, lead, benefits], index) => (
-                <article className={index === 1 ? "pricing-card featured" : "pricing-card"} key={name}>
-                  {index === 1 && <span className="recommended">Mais escolhido</span>}
-                  <p className="eyebrow">Plano {name}</p>
-                  <h3>{price}{price.startsWith("R$") && <small>/mês</small>}</h3>
-                  <strong>{lead}</strong>
-                  <ul>{benefits.map((benefit) => <li key={benefit}><FiCheck />{benefit}</li>)}</ul>
-                  <a href="#cadastro" className="button button-secondary">Escolher plano <FiArrowRight /></a>
+            <div className="center-heading">
+              <p className="eyebrow">Como funciona</p>
+              <h2>Da simulação ao orçamento em 4 passos</h2>
+            </div>
+            <div className="partner-steps">
+              {[
+                [<FiUpload />, "1", "O cliente envia a foto da fachada"],
+                [<FiImage />, "2", "A IA gera ideias de portões aplicadas na casa dele"],
+                [<FiSliders />, "3", "O cliente escolhe os modelos e informa dados básicos"],
+                [<FiUsers />, "4", "O parceiro recebe o lead qualificado e entra em contato"],
+              ].map(([icon, number, text]) => (
+                <article key={number}>
+                  <span>{icon}</span>
+                  <strong>{number}</strong>
+                  <p>{text}</p>
                 </article>
               ))}
             </div>
           </div>
         </section>
+
+        <section className="shell partner-benefits">
+          <div className="section-heading">
+            <div><p className="eyebrow">O que o parceiro ganha</p><h2>Mais contexto antes da primeira ligação</h2></div>
+            <a href="#cadastro" className="button button-secondary">Começar teste grátis <FiArrowRight /></a>
+          </div>
+          <div className="partner-benefit-grid">
+            {partnerBenefits.map(([icon, title, text]) => <article key={title}><span>{icon}</span><h3>{title}</h3><p>{text}</p></article>)}
+          </div>
+        </section>
+
+        <section className="partner-value">
+          <div className="shell partner-value-grid">
+            <div>
+              <p className="eyebrow">Por que vale R$ 299/mês</p>
+              <h2>Um único serviço fechado pode pagar a assinatura com folga.</h2>
+              <p>Um portão residencial pode representar uma venda de alguns milhares de reais. Se a plataforma gerar apenas um novo cliente fechado, o plano mensal já pode se pagar.</p>
+            </div>
+            <ul>
+              {["Você não precisa investir sozinho em anúncios.", "Você não precisa criar tecnologia de simulação por IA.", "Você recebe oportunidades já filtradas.", "Você entra em um canal novo de aquisição de clientes.", "Você testa por 30 dias sem pagar mensalidade."].map((item) => <li key={item}><FiCheck />{item}</li>)}
+            </ul>
+          </div>
+        </section>
+
+        <section className="partner-pricing" id="preco">
+          <div className="shell">
+            <article className="partner-price-card">
+              <div>
+                <span className="recommended">1º mês grátis</span>
+                <p className="eyebrow">Parceiro Padrão</p>
+                <h2>R$ 299<span>/mês</span></h2>
+                <p>Após o período gratuito, a continuidade é opcional. Você só permanece se quiser continuar recebendo oportunidades pela plataforma.</p>
+                <a href="#cadastro" className="button">Começar teste grátis <FiArrowRight /></a>
+              </div>
+              <ul>
+                {pricingBenefits.map((benefit) => <li key={benefit}><FiCheck />{benefit}</li>)}
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section className="shell partner-fit">
+          <div>
+            <p className="eyebrow">Para quem é indicado</p>
+            <h2>Feito para quem atende portões todos os dias.</h2>
+          </div>
+          <div className="fit-list">
+            {["Serralherias", "Fabricantes de portões", "Instaladores de portões automáticos", "Empresas de automação", "Empresas de esquadrias metálicas", "Profissionais que atendem casas, condomínios e pequenos comércios"].map((item) => <span key={item}>{item}</span>)}
+          </div>
+        </section>
+
+        <section className="partner-now">
+          <div className="shell partner-now-grid">
+            <div>
+              <p className="eyebrow light">Por que entrar agora?</p>
+              <h2>O cliente está cada vez mais visual: ele quer ver antes de comprar.</h2>
+            </div>
+            <div className="now-points">
+              {["Quem responde rápido e mostra boas ideias ganha vantagem.", "A tecnologia ajuda pequenas empresas a competirem com empresas maiores.", "Você entra cedo em uma plataforma especializada em portões.", "Ao invés de disputar apenas preço, você disputa com apresentação, confiança e solução."].map((item) => <p key={item}><FiArrowRight />{item}</p>)}
+            </div>
+          </div>
+        </section>
+
+        <section className="shell trust-notes">
+          {["Simulações são ilustrativas e o orçamento final depende de medição e avaliação técnica.", "Os parceiros continuam responsáveis pelo orçamento, fabricação, instalação, garantia e atendimento ao cliente.", "A plataforma atua como canal de conexão e qualificação de oportunidades."].map((note) => <article key={note}><FiShield /><p>{note}</p></article>)}
+        </section>
+
+        <section className="shell partner-faq">
+          <div className="section-heading"><div><p className="eyebrow">FAQ</p><h2>Perguntas comuns dos parceiros</h2></div></div>
+          <div className="faq-list">
+            {faqItems.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}
+          </div>
+        </section>
+
         <section className="shell partner-form-section" id="cadastro">
           <div>
-            <p className="eyebrow">Seja parceiro</p>
-            <h2>Conte um pouco sobre sua empresa.</h2>
-            <p>Vamos entender sua área de atuação e indicar o plano mais adequado.</p>
+            <p className="eyebrow">Cadastro de parceiro</p>
+            <h2>Pronto para receber clientes mais preparados para comprar?</h2>
+            <p>Entre como parceiro, teste por 30 dias grátis e veja como a simulação com IA pode ajudar sua empresa a vender mais portões.</p>
           </div>
           <PartnerForm backendEnabled={backendEnabled} />
         </section>

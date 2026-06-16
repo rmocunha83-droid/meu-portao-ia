@@ -62,21 +62,29 @@ export const createPartnerLead = mutation({
     owner: v.string(),
     whatsapp: v.string(),
     city: v.string(),
-    volume: v.string(),
+    serviceType: v.string(),
+    serviceRegion: v.string(),
+    volume: v.optional(v.string()),
     source: v.string(),
     pagePath: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("partnerRequests", {
+    const partnerRequest = {
       company: requiredText(args.company, "Nome da empresa"),
       owner: requiredText(args.owner, "Responsável"),
       whatsapp: requiredText(args.whatsapp, "WhatsApp"),
-      city: requiredText(args.city, "Cidade"),
-      volume: requiredText(args.volume, "Volume mensal"),
+      city: requiredText(args.city, "Cidade/Estado"),
+      serviceType: requiredText(args.serviceType, "Tipo de serviço"),
+      serviceRegion: requiredText(args.serviceRegion, "Região atendida"),
       source: requiredText(args.source, "Origem"),
       pagePath: optionalText(args.pagePath),
       createdAt: Date.now(),
-    });
+    };
+    const volume = optionalText(args.volume);
+    const id = await ctx.db.insert(
+      "partnerRequests",
+      volume ? { ...partnerRequest, volume } : partnerRequest,
+    );
 
     return { id };
   },

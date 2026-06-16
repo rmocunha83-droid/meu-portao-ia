@@ -14,6 +14,7 @@ When implementing from a selected generated mock, treat that image as the source
 - Do not reuse the same photo across Home inspiration cards, result cards, and customer stories when the user is comparing options.
 - Keep the hero transformation visually clear: copy must not cover the before-and-after image, especially on mobile and narrow browser widths.
 - Treat the footer as a conversion and trust area with clear paths for moradores, empresas, simulation CTA, and privacy reassurance.
+- The `/empresas` page should sell the partner offer to serralherias, gate manufacturers, automatic gate installers, automation companies, and local service owners. Keep the promise concrete: qualified opportunities from users who already simulated gate options on their own facade, not generic leads. Standard partner price is R$ 299/month with the first month free for new partners.
 
 <!-- convex-ai-start -->
 
