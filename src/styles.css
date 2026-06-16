@@ -186,6 +186,7 @@ textarea { height: 125px; resize: vertical; line-height: 1.5; }
 .form-grid, .partner-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 .form-grid label, .partner-form label { margin-top: 14px; }
 .full { grid-column: 1 / -1; }
+.form-error { margin: 16px 0 0; padding: 13px 14px; border: 1px solid #d9a08a; border-radius: 8px; background: #fff1ea; color: #8d3f25; font-size: .78rem; line-height: 1.45; }
 .checkbox { display: flex !important; grid-template-columns: 20px 1fr; flex-direction: row; align-items: flex-start; font-weight: 500 !important; line-height: 1.45; }
 .checkbox input { width: 18px; height: 18px; flex: none; margin: 2px 0 0; }
 .success-state { text-align: center; padding: 35px 20px 20px; }

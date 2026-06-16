@@ -14,3 +14,17 @@ When implementing from a selected generated mock, treat that image as the source
 - Do not reuse the same photo across Home inspiration cards, result cards, and customer stories when the user is comparing options.
 - Keep the hero transformation visually clear: copy must not cover the before-and-after image, especially on mobile and narrow browser widths.
 - Treat the footer as a conversion and trust area with clear paths for moradores, empresas, simulation CTA, and privacy reassurance.
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

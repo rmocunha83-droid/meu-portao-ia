@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
 import {
   FiArrowRight,
   FiCheck,
@@ -184,7 +186,7 @@ function Footer() {
       </div>
       <div className="footer-bottom">
         <span>© 2026 Meu Portão IA</span>
-        <span>MVP demonstrativo sem pagamentos, login ou backend real.</span>
+        <span>MVP com captação de leads via Convex, sem pagamentos ou login.</span>
       </div>
     </footer>
   );
@@ -386,15 +388,84 @@ function HomePage() {
   );
 }
 
-function LeadModal({ model, onClose }) {
-  const [success, setSuccess] = useState(false);
+function LeadModal({ model, onClose, backendEnabled, selectedStyles, description, photoAttached }) {
+  if (backendEnabled) {
+    return (
+      <ConnectedLeadModal
+        model={model}
+        onClose={onClose}
+        selectedStyles={selectedStyles}
+        description={description}
+        photoAttached={photoAttached}
+      />
+    );
+  }
 
-  function submit(event) {
+  return (
+    <LeadModalContent
+      model={model}
+      onClose={onClose}
+      selectedStyles={selectedStyles}
+      description={description}
+      photoAttached={photoAttached}
+      backendEnabled={false}
+    />
+  );
+}
+
+function ConnectedLeadModal(props) {
+  const createLead = useMutation(api.leads.createLead);
+  return <LeadModalContent {...props} backendEnabled onSubmitLead={createLead} />;
+}
+
+function LeadModalContent({
+  model,
+  onClose,
+  backendEnabled,
+  onSubmitLead,
+  selectedStyles = [],
+  description = "",
+  photoAttached = false,
+}) {
+  const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(event) {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget));
-    // Future integration point: send qualified lead to CRM, database or WhatsApp.
-    console.log("Lead Meu Portão IA", { ...data, selectedModel: model.name });
-    setSuccess(true);
+    setError("");
+
+    if (!backendEnabled || !onSubmitLead) {
+      setError("A conexão com o banco ainda precisa ser ativada para receber este pedido.");
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const field = (name) => String(formData.get(name) || "").trim();
+
+    try {
+      setSubmitting(true);
+      await onSubmitLead({
+        name: field("name"),
+        whatsapp: field("whatsapp"),
+        city: field("city"),
+        neighborhood: field("neighborhood"),
+        timing: field("timing"),
+        property: field("property"),
+        consent: formData.get("consent") === "on",
+        selectedModel: model.name,
+        selectedStyles,
+        description: description.trim() || undefined,
+        source: "simulator",
+        pagePath: window.location.pathname,
+        photoAttached,
+      });
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível enviar agora. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -436,7 +507,10 @@ function LeadModal({ model, onClose }) {
                 <input type="checkbox" name="consent" required />
                 <span>Aceito receber contato de empresas parceiras para orçamento.</span>
               </label>
-              <button className="button full" type="submit">Receber orçamento <FiArrowRight /></button>
+              {error && <p className="form-error full">{error}</p>}
+              <button className="button full" type="submit" disabled={submitting}>
+                {submitting ? "Enviando..." : <>Receber orçamento <FiArrowRight /></>}
+              </button>
             </form>
           </>
         )}
@@ -445,7 +519,7 @@ function LeadModal({ model, onClose }) {
   );
 }
 
-function SimulatorPage() {
+function SimulatorPage({ backendEnabled }) {
   const [image, setImage] = useState(null);
   const [selected, setSelected] = useState(["Moderno"]);
   const [description, setDescription] = useState("");
@@ -576,19 +650,69 @@ function SimulatorPage() {
         )}
       </main>
       <Footer />
-      {leadModel && <LeadModal model={leadModel} onClose={() => setLeadModel(null)} />}
+      {leadModel && (
+        <LeadModal
+          model={leadModel}
+          onClose={() => setLeadModel(null)}
+          backendEnabled={backendEnabled}
+          selectedStyles={selected}
+          description={description}
+          photoAttached={Boolean(image)}
+        />
+      )}
     </>
   );
 }
 
-function PartnerForm() {
+function PartnerForm({ backendEnabled }) {
+  if (backendEnabled) {
+    return <ConnectedPartnerForm />;
+  }
+
+  return <PartnerFormContent backendEnabled={false} />;
+}
+
+function ConnectedPartnerForm() {
+  const createPartnerLead = useMutation(api.leads.createPartnerLead);
+  return <PartnerFormContent backendEnabled onSubmitPartnerLead={createPartnerLead} />;
+}
+
+function PartnerFormContent({ backendEnabled, onSubmitPartnerLead }) {
   const [sent, setSent] = useState(false);
-  const submit = (event) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (event) => {
     event.preventDefault();
-    // Future integration point: persist partner interest and notify the sales team.
-    console.log("Interesse de parceiro", Object.fromEntries(new FormData(event.currentTarget)));
-    setSent(true);
+    setError("");
+
+    if (!backendEnabled || !onSubmitPartnerLead) {
+      setError("A conexão com o banco ainda precisa ser ativada para receber este cadastro.");
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const field = (name) => String(formData.get(name) || "").trim();
+
+    try {
+      setSubmitting(true);
+      await onSubmitPartnerLead({
+        company: field("company"),
+        owner: field("owner"),
+        whatsapp: field("whatsapp"),
+        city: field("city"),
+        volume: field("volume"),
+        source: "partner-page",
+        pagePath: window.location.pathname,
+      });
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível enviar agora. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
   if (sent) return <div className="partner-success"><FiCheck /><h3>Cadastro recebido.</h3><p>Nossa equipe entrará em contato para conhecer sua região de atuação.</p></div>;
   return (
     <form className="partner-form" onSubmit={submit}>
@@ -602,12 +726,15 @@ function PartnerForm() {
           <option>Até 5</option><option>De 6 a 15</option><option>De 16 a 30</option><option>Mais de 30</option>
         </select>
       </label>
-      <button className="button full">Quero ser parceiro <FiArrowRight /></button>
+      {error && <p className="form-error full">{error}</p>}
+      <button className="button full" disabled={submitting}>
+        {submitting ? "Enviando..." : <>Quero ser parceiro <FiArrowRight /></>}
+      </button>
     </form>
   );
 }
 
-function CompaniesPage() {
+function CompaniesPage({ backendEnabled }) {
   const plans = [
     ["Inicial", "R$ 99", "Até 20 leads", ["Área de atuação local", "Preferências do cliente", "Suporte por e-mail"]],
     ["Profissional", "R$ 199", "Até 60 leads", ["Mais cidades de atuação", "Prioridade na distribuição", "Relatório de desempenho"]],
@@ -662,7 +789,7 @@ function CompaniesPage() {
             <h2>Conte um pouco sobre sua empresa.</h2>
             <p>Vamos entender sua área de atuação e indicar o plano mais adequado.</p>
           </div>
-          <PartnerForm />
+          <PartnerForm backendEnabled={backendEnabled} />
         </section>
       </main>
       <Footer />
@@ -679,8 +806,8 @@ function PrivacyPage() {
         <h1>Política de privacidade</h1>
         <p className="privacy-lead">Última atualização: 15 de junho de 2026.</p>
         {[
-          ["1. Imagens da fachada", "Você envia a imagem voluntariamente para criar simulações de portões. Neste MVP, o processamento é demonstrativo e acontece localmente no navegador."],
-          ["2. Dados de contato", "Nome, WhatsApp, cidade e bairro são coletados apenas quando você solicita orçamento ou demonstra interesse em uma empresa parceira."],
+          ["1. Imagens da fachada", "Você envia a imagem voluntariamente para criar simulações de portões. Neste MVP, a imagem é usada apenas no navegador e não é salva no banco."],
+          ["2. Dados de contato", "Nome, WhatsApp, cidade, bairro e preferências são salvos no Convex quando você solicita orçamento ou demonstra interesse em ser parceiro."],
           ["3. Compartilhamento", "Seus dados poderão ser compartilhados com empresas parceiras somente quando você marcar a autorização no formulário de orçamento."],
           ["4. Exclusão", "Você pode solicitar a exclusão dos dados enviados pelos canais de contato da plataforma. A versão futura terá um fluxo dedicado para esse pedido."],
           ["5. Natureza do projeto", "O Meu Portão IA apresentado aqui é um MVP demonstrativo. Não há pagamento, autenticação ou armazenamento permanente de imagens nesta versão."],
@@ -696,7 +823,7 @@ function NotFound() {
   return <><Header /><main className="not-found shell"><p className="eyebrow">Erro 404</p><h1>Essa entrada não abriu.</h1><LinkButton to="/">Voltar para a Home</LinkButton></main><Footer /></>;
 }
 
-export function App() {
+export function App({ backendEnabled = false }) {
   const [path, setPath] = useState(window.location.pathname);
   useEffect(() => {
     const update = () => setPath(window.location.pathname);
@@ -705,10 +832,10 @@ export function App() {
   }, []);
   const page = useMemo(() => {
     if (path === "/") return <HomePage />;
-    if (path === "/simular") return <SimulatorPage />;
-    if (path === "/empresas") return <CompaniesPage />;
+    if (path === "/simular") return <SimulatorPage backendEnabled={backendEnabled} />;
+    if (path === "/empresas") return <CompaniesPage backendEnabled={backendEnabled} />;
     if (path === "/privacidade") return <PrivacyPage />;
     return <NotFound />;
-  }, [path]);
+  }, [path, backendEnabled]);
   return page;
 }
