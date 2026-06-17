@@ -792,10 +792,9 @@ function CompaniesPage({ backendEnabled }) {
               </div>
             </div>
             <div className="partner-hero-card">
-              <span className="free-badge">1º mês grátis</span>
               <img src={assets.installer} alt="Instalador avaliando projeto de portão com cliente" />
               <div className="price-ribbon">
-                <small>Plano parceiro</small>
+                <small>Plano parceiro • 1º mês grátis</small>
                 <strong>R$ 299/mês</strong>
                 <span>Teste por 30 dias antes de continuar.</span>
               </div>
@@ -864,7 +863,7 @@ function CompaniesPage({ backendEnabled }) {
           <div className="shell">
             <article className="partner-price-card">
               <div>
-                <span className="recommended">1º mês grátis</span>
+                <span className="price-badge">1º mês grátis</span>
                 <p className="eyebrow">Parceiro Padrão</p>
                 <h2>R$ 299<span>/mês</span></h2>
                 <p>Após o período gratuito, a continuidade é opcional. Você só permanece se quiser continuar recebendo oportunidades pela plataforma.</p>
