@@ -69,7 +69,6 @@ const simulationStyles = [
 const generatedModelNames = [
   "Transformação elegante",
   "Portão com presença",
-  "Fachada valorizada",
 ];
 
 function generatedDescription(index, selectedStyles) {
@@ -80,6 +79,54 @@ function generatedDescription(index, selectedStyles) {
     "Alternativa para comparar proporção, privacidade e valorização visual antes de pedir orçamento.",
   ];
   return descriptions[index] || descriptions[0];
+}
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const AI_UPLOAD_MAX_EDGE = 1600;
+const AI_UPLOAD_JPEG_QUALITY = 0.85;
+
+function optimizedFileName(name) {
+  const cleanName = name || "fachada";
+  return cleanName.replace(/\.[^.]+$/, "") + "-otimizada.jpg";
+}
+
+async function optimizeImageForAi(file) {
+  if (!file.type?.startsWith("image/")) return file;
+
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const imageElement = new Image();
+      imageElement.onload = () => resolve(imageElement);
+      imageElement.onerror = () => reject(new Error("Não foi possível preparar a foto."));
+      imageElement.src = imageUrl;
+    });
+
+    const scale = Math.min(1, AI_UPLOAD_MAX_EDGE / Math.max(img.width, img.height));
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(img, 0, 0, width, height);
+
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", AI_UPLOAD_JPEG_QUALITY);
+    });
+
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], optimizedFileName(file.name), {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
 }
 
 const results = [
@@ -582,10 +629,10 @@ function SimulatorPage({ backendEnabled }) {
     );
   };
 
-  const upload = (event) => {
+  const upload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       setGenerationError("A foto precisa ter até 10 MB.");
       return;
     }
@@ -594,6 +641,13 @@ function SimulatorPage({ backendEnabled }) {
     setGenerated(false);
     setGeneratedResults([]);
     setGenerationError("");
+    try {
+      const optimizedFile = await optimizeImageForAi(file);
+      setPhotoFile(optimizedFile);
+    } catch {
+      setPhotoFile(file);
+      setGenerationError("A foto foi aceita, mas não conseguimos compactá-la. A simulação ainda pode ser gerada normalmente.");
+    }
   };
 
   const generate = async () => {
@@ -609,7 +663,7 @@ function SimulatorPage({ backendEnabled }) {
     setGenerationError("");
 
     const formData = new FormData();
-    formData.append("facade", photoFile, photoFile.name || "fachada.png");
+    formData.append("facade", photoFile, photoFile.name || "fachada.jpg");
     formData.append("styles", selected.join(", "));
     formData.append("description", description);
 

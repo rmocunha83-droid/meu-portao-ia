@@ -12,10 +12,10 @@ const corsHeaders = {
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const SUPPORTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const GENERATED_IMAGE_CONTENT_TYPE = "image/jpeg";
 const generatedModelNames = [
   "Transformação elegante",
   "Portão com presença",
-  "Fachada valorizada",
 ];
 
 function jsonResponse(body: unknown, status = 200) {
@@ -34,7 +34,7 @@ function textField(value: FormDataEntryValue | null) {
 
 function fileName(file: Blob) {
   const possibleName = "name" in file ? String(file.name || "") : "";
-  return possibleName || "fachada.png";
+  return possibleName || "fachada.jpg";
 }
 
 function buildPrompt(styles: string, description: string) {
@@ -66,13 +66,13 @@ function generatedDescription(index: number, styles: string) {
   return descriptions[index] || descriptions[0];
 }
 
-function base64ToBlob(base64: string) {
+function base64ToBlob(base64: string, contentType = GENERATED_IMAGE_CONTENT_TYPE) {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.charCodeAt(index);
   }
-  return new Blob([bytes], { type: "image/png" });
+  return new Blob([bytes], { type: contentType });
 }
 
 http.route({
@@ -120,9 +120,11 @@ http.route({
     openAiForm.append("model", "gpt-image-1");
     openAiForm.append("image", uploaded, fileName(uploaded));
     openAiForm.append("prompt", prompt);
-    openAiForm.append("n", "3");
+    openAiForm.append("n", "2");
     openAiForm.append("size", "1024x1024");
     openAiForm.append("quality", "medium");
+    openAiForm.append("output_format", "jpeg");
+    openAiForm.append("output_compression", "85");
 
     const response = await fetch("https://api.openai.com/v1/images/edits", {
       method: "POST",
