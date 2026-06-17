@@ -35,6 +35,11 @@ const assets = {
   storyCampinas: "/assets/story-campinas.webp",
   storyBh: "/assets/story-bh.webp",
   installer: "/assets/installer-partner.webp",
+  partner2bHero: "/assets/partner-2b-hero.webp",
+  partner2bStepPhoto: "/assets/partner-2b-step-photo.webp",
+  partner2bStepModels: "/assets/partner-2b-step-models.webp",
+  partner2bStepStyle: "/assets/partner-2b-step-style.webp",
+  partner2bStepPartner: "/assets/partner-2b-step-partner.webp",
 };
 
 const styles = [
@@ -58,6 +63,22 @@ const simulationStyles = [
   "Mais ventilação",
   "Econômico",
 ];
+
+const generatedModelNames = [
+  "Transformação elegante",
+  "Portão com presença",
+  "Fachada valorizada",
+];
+
+function generatedDescription(index, selectedStyles) {
+  const styleText = selectedStyles.length ? selectedStyles.join(", ").toLowerCase() : "o estilo escolhido";
+  const descriptions = [
+    `Opção com foco em ${styleText}, mantendo a mesma casa e melhorando a presença da entrada.`,
+    "Uma leitura mais sofisticada da fachada, com portão novo, acabamento limpo e iluminação mais bonita.",
+    "Alternativa para comparar proporção, privacidade e valorização visual antes de pedir orçamento.",
+  ];
+  return descriptions[index] || descriptions[0];
+}
 
 const results = [
   {
@@ -113,10 +134,10 @@ function LinkButton({ to, children, className = "", secondary = false }) {
   );
 }
 
-function Header() {
+function Header({ partnerLanding = false }) {
   const [open, setOpen] = useState(false);
   return (
-    <header className="site-header">
+    <header className={partnerLanding ? "site-header partner-simple-header" : "site-header"}>
       <a
         href="/"
         className="logo"
@@ -127,27 +148,36 @@ function Header() {
       >
         <FiHome aria-hidden="true" /> Meu Portão <span>IA</span>
       </a>
-      <nav className={open ? "nav open" : "nav"} aria-label="Navegação principal">
-        <LinkButton to="/simular">Simular agora</LinkButton>
-        <a
-          href="/empresas"
-          className="nav-link nav-partner-link"
-          onClick={(event) => {
-            event.preventDefault();
-            setOpen(false);
-            navigate("/empresas");
-          }}
-        >
-          Para empresas
+      {partnerLanding ? (
+        <a href="#cadastro" className="button partner-header-cta">
+          <span className="partner-cta-desktop">Testar 1 mês grátis</span>
+          <span className="partner-cta-mobile">Teste grátis</span>
         </a>
-      </nav>
-      <button
-        className="menu-button"
-        aria-label={open ? "Fechar menu" : "Abrir menu"}
-        onClick={() => setOpen((value) => !value)}
-      >
-        {open ? <FiX /> : <FiMenu />}
-      </button>
+      ) : (
+        <>
+          <nav className={open ? "nav open" : "nav"} aria-label="Navegação principal">
+            <LinkButton to="/simular">Simular agora</LinkButton>
+            <a
+              href="/empresas"
+              className="nav-link nav-partner-link"
+              onClick={(event) => {
+                event.preventDefault();
+                setOpen(false);
+                navigate("/empresas");
+              }}
+            >
+              Para empresas
+            </a>
+          </nav>
+          <button
+            className="menu-button"
+            aria-label={open ? "Fechar menu" : "Abrir menu"}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? <FiX /> : <FiMenu />}
+          </button>
+        </>
+      )}
     </header>
   );
 }
@@ -245,10 +275,11 @@ function HomePage() {
         <section className="hero">
           <div className="hero-copy">
             <p className="eyebrow">Visualize antes de reformar</p>
-            <h1>Veja como sua casa ficaria com um novo portão antes de gastar dinheiro</h1>
+            <h1>Não é sua casa que está sem graça. É o portão que ficou para trás.</h1>
             <p className="hero-description">
               Use a inteligência artificial para visualizar diferentes modelos
-              na fachada da sua casa e conecte-se com instaladores de confiança.
+              de portões na fachada da sua casa e conecte-se com instaladores
+              de confiança.
             </p>
             <LinkButton to="/simular" className="hero-button">
               Simular meu portão <FiArrowRight />
@@ -521,11 +552,23 @@ function LeadModalContent({
 
 function SimulatorPage({ backendEnabled }) {
   const [image, setImage] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const [selected, setSelected] = useState(["Moderno"]);
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const [generatedResults, setGeneratedResults] = useState([]);
+  const [generationError, setGenerationError] = useState("");
   const [leadModel, setLeadModel] = useState(null);
+  const imageGenerationEndpoint = import.meta.env.VITE_CONVEX_SITE_URL
+    ? `${import.meta.env.VITE_CONVEX_SITE_URL}/generate-gate-simulation`
+    : "";
+
+  useEffect(() => {
+    return () => {
+      if (image) URL.revokeObjectURL(image);
+    };
+  }, [image]);
 
   const toggleStyle = (style) => {
     setSelected((current) =>
@@ -538,21 +581,65 @@ function SimulatorPage({ backendEnabled }) {
   const upload = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    // Future integration point: upload the original facade photo to cloud storage.
+    if (file.size > 10 * 1024 * 1024) {
+      setGenerationError("A foto precisa ter até 10 MB.");
+      return;
+    }
+    setPhotoFile(file);
     setImage(URL.createObjectURL(file));
     setGenerated(false);
+    setGeneratedResults([]);
+    setGenerationError("");
   };
 
-  const generate = () => {
-    if (!image) return;
+  const generate = async () => {
+    if (!photoFile) return;
+    if (!imageGenerationEndpoint) {
+      setGenerationError("A conexão com a IA ainda precisa da URL do backend Convex.");
+      return;
+    }
+
     setLoading(true);
     setGenerated(false);
-    // Future integration point: call the image generation API with photo, styles and description.
-    window.setTimeout(() => {
-      setLoading(false);
+    setGeneratedResults([]);
+    setGenerationError("");
+
+    const formData = new FormData();
+    formData.append("facade", photoFile, photoFile.name || "fachada.png");
+    formData.append("styles", selected.join(", "));
+    formData.append("description", description);
+
+    try {
+      const response = await fetch(imageGenerationEndpoint, {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error || "Não foi possível gerar a simulação agora.");
+      }
+
+      const images = Array.isArray(payload?.images) ? payload.images : [];
+      if (!images.length) {
+        throw new Error("A IA não retornou imagens. Tente novamente com outra foto.");
+      }
+
+      setGeneratedResults(images.map((item, index) => ({
+        name: generatedModelNames[index] || `Opção ${index + 1}`,
+        description: generatedDescription(index, selected),
+        image: item.url,
+        position: "50%",
+        aiGenerated: true,
+      })));
       setGenerated(true);
-      document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
-    }, 2000);
+      window.setTimeout(() => {
+        document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
+      }, 80);
+    } catch (err) {
+      setGenerationError(err instanceof Error ? err.message : "Não foi possível gerar a simulação agora.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -585,7 +672,7 @@ function SimulatorPage({ backendEnabled }) {
                 </label>
               )}
             </div>
-            <div className="photo-tip"><FiShield /><span><strong>Sua foto fica protegida.</strong> Neste MVP, ela é usada apenas no seu navegador.</span></div>
+            <div className="photo-tip"><FiShield /><span><strong>Sua foto não fica pública.</strong> Ela é enviada com segurança para gerar a simulação e não é salva no banco deste MVP.</span></div>
           </div>
           <div className="preferences">
             <div className="form-section-title"><span>01</span><div><h2>Escolha o estilo</h2><p>Você pode combinar mais de uma preferência.</p></div></div>
@@ -610,9 +697,10 @@ function SimulatorPage({ backendEnabled }) {
               />
             </label>
             <button className="button generate-button" disabled={!image || loading} onClick={generate}>
-              {loading ? <><span className="spinner" /> Criando suas ideias...</> : <><FiZap /> Gerar ideias</>}
+              {loading ? <><span className="spinner" /> Criando com IA...</> : <><FiZap /> Gerar simulação com IA</>}
             </button>
             {!image && <small className="disabled-note">Envie uma foto para liberar a geração.</small>}
+            {generationError && <p className="form-error">{generationError}</p>}
           </div>
         </section>
 
@@ -620,7 +708,7 @@ function SimulatorPage({ backendEnabled }) {
           <section className="results-section" id="results">
             <div className="shell">
               <div className="section-heading">
-                <div><p className="eyebrow">Sua seleção</p><h2>{loading ? "A IA está redesenhando sua fachada" : "Quatro ideias para comparar"}</h2></div>
+                <div><p className="eyebrow">Sua seleção</p><h2>{loading ? "A IA está redesenhando sua fachada" : "Ideias geradas para sua fachada"}</h2></div>
               </div>
               {loading ? (
                 <div className="loading-panel">
@@ -630,11 +718,26 @@ function SimulatorPage({ backendEnabled }) {
                 </div>
               ) : (
                 <div className="result-grid">
-                  {results.map((result, index) => (
+                  {generatedResults.map((result, index) => (
                     <article className="result-card" key={result.name}>
                       <div className="result-image">
-                        <img src={result.image} alt={result.name} style={{ objectPosition: result.position }} />
-                        <span>Modelo {index + 1}</span>
+                        {result.aiGenerated ? (
+                          <div className="ai-before-after">
+                            <div>
+                              <img src={image} alt="Fachada original enviada" />
+                              <span>Antes</span>
+                            </div>
+                            <div>
+                              <img src={result.image} alt={result.name} style={{ objectPosition: result.position }} />
+                              <span>Depois</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <img src={result.image} alt={result.name} style={{ objectPosition: result.position }} />
+                            <span>Modelo {index + 1}</span>
+                          </>
+                        )}
                       </div>
                       <div className="result-content">
                         <h3>{result.name}</h3>
@@ -742,93 +845,125 @@ function PartnerFormContent({ backendEnabled, onSubmitPartnerLead }) {
 }
 
 function CompaniesPage({ backendEnabled }) {
-  const marketProblems = [
-    "Não sabem qual modelo combina com a casa.",
-    "Têm dificuldade para visualizar o resultado.",
-    "Pedem orçamento sem saber exatamente o que querem.",
-    "Falam com várias empresas e muitas vezes não fecham.",
+  const proofSteps = [
+    [<FiImage />, "Foto da fachada"],
+    [<FiGrid />, "Modelo escolhido"],
+    [<FiUsers />, "Contato com contexto"],
   ];
-  const partnerBenefits = [
-    [<FiUsers />, "Leads mais qualificados", "Você recebe contatos de pessoas que já demonstraram interesse real e visualizaram possibilidades para a própria casa."],
-    [<FiClock />, "Menos perda de tempo", "O cliente chega com uma ideia mais clara do que procura, facilitando a conversa e o orçamento."],
-    [<FiCheck />, "Mais chances de fechar", "Quando o cliente visualiza o resultado antes, ele tende a se envolver mais com o projeto."],
-    [<FiZap />, "Diferenciação no mercado", "Sua empresa aparece em uma jornada moderna e visual, não só em indicação ou conversa de WhatsApp."],
-    [<FiMapPin />, "Presença digital local", "A plataforma ajuda sua empresa a ser encontrada por clientes que pesquisam portões na sua região."],
-    [<FiShield />, "Potencial de ticket alto", "Um único serviço fechado pode pagar vários meses da assinatura."],
+  const comparisonItems = [
+    ["cliente indeciso", "Quero trocar meu portão...", "cliente com referência visual", "Já vi como fica na minha casa e quero esse modelo."],
+    ["conversa fria", "Me fala os modelos e os preços.", "desejo já criado", "Quero saber quanto fica para fazer igual a esse daqui."],
+    ["disputar preço", "Qual o menor preço?", "vender solução", "Quero qualidade para valorizar minha casa e ficar seguro."],
   ];
-  const pricingBenefits = [
-    "Recebimento de leads qualificados da sua região",
-    "Página de parceiro dentro da plataforma",
-    "Participação na rede de fornecedores",
-    "Leads de clientes que fizeram simulação com IA",
-    "Possibilidade de receber fotos, preferências e dados básicos do projeto",
-    "Suporte inicial para cadastro",
-    "Sem fidelidade no primeiro mês",
+  const processSteps = [
+    [assets.partner2bStepPhoto, "Cliente envia foto da fachada"],
+    [assets.partner2bStepModels, "IA mostra modelos na casa dele"],
+    [assets.partner2bStepStyle, "Cliente escolhe estilos e informa região"],
+    [assets.partner2bStepPartner, "Parceiro recebe um contato mais preparado"],
+  ];
+  const priceBenefits = [
+    "Contatos com contexto visual da fachada",
+    "Pessoas realmente interessadas",
+    "Oportunidades na sua região",
+    "Sem fidelidade depois do teste",
+  ];
+  const trustItems = [
+    [<FiUsers />, "Feito para serralherias, instaladores e fabricantes de portões."],
+    [<FiMapPin />, "Oportunidades compatíveis com sua região de atendimento."],
+    [<FiZap />, "Mais conversas boas, mais orçamentos e menos curiosos."],
+    [<FiShield />, "Plataforma segura, parceiros verificados e suporte humano."],
   ];
   const faqItems = [
-    ["Sou obrigado a continuar depois do mês grátis?", "Não. O primeiro mês serve para você testar a plataforma. Depois, você decide se quer continuar no plano de R$ 299/mês."],
-    ["A plataforma fabrica portões?", "Não. A plataforma conecta clientes interessados a empresas parceiras especializadas."],
-    ["Os leads já vêm prontos para orçamento?", "Eles vêm mais qualificados do que um contato comum, porque o cliente já passou pela etapa de simulação e informou dados básicos. A visita técnica e o orçamento final continuam sendo responsabilidade do parceiro."],
-    ["Posso atender apenas minha cidade ou região?", "Sim. O parceiro informa as regiões onde atende para receber oportunidades compatíveis."],
-    ["Um único cliente pode pagar a assinatura?", "Sim. Como portões normalmente têm ticket de venda alto, um único serviço fechado pode compensar o valor mensal do plano."],
+    [
+      "O Meu Portão IA cobra comissão pelas vendas?",
+      "Não. O valor da venda fica integralmente com a empresa parceira. A plataforma cobra apenas a mensalidade do plano parceiro depois do primeiro mês gratuito.",
+    ],
+    [
+      "O site fabrica ou instala portões?",
+      "Não. O Meu Portão IA não fabrica, vende nem instala portões. A plataforma ajuda o cliente a visualizar modelos na própria fachada e conecta esse interesse com empresas parceiras da região.",
+    ],
+    [
+      "Os contatos já chegam prontos para orçamento?",
+      "Eles chegam mais preparados do que um contato comum, porque a pessoa já enviou a fachada, viu possibilidades e escolheu uma direção visual. A visita técnica, medidas e orçamento final continuam com o parceiro.",
+    ],
+    [
+      "Sou obrigado a continuar depois do mês grátis?",
+      "Não. O primeiro mês serve para testar a plataforma sem risco. Depois, você decide se quer continuar no plano de R$ 299/mês.",
+    ],
+    [
+      "Posso atender só algumas cidades ou bairros?",
+      "Sim. No cadastro você informa sua região de atendimento para receber oportunidades compatíveis com onde sua empresa realmente trabalha.",
+    ],
   ];
+
   return (
     <>
-      <Header />
+      <Header partnerLanding />
       <main className="partners-page">
-        <section className="partner-hero">
-          <div className="shell partner-hero-grid">
-            <div className="partner-hero-copy">
-              <p className="eyebrow">Seja parceiro Meu Portão IA</p>
-              <h1>Receba clientes interessados em trocar ou instalar portões na sua região</h1>
-              <p>Clientes enviam a foto da casa, simulam modelos de portões com IA e chegam até você mais preparados para pedir orçamento.</p>
-              <div className="partner-hero-actions">
-                <a href="#cadastro" className="button">Quero ser parceiro <FiArrowRight /></a>
-                <a href="#preco" className="button button-secondary">Testar 1 mês grátis</a>
-              </div>
-              <div className="partner-proof">
-                <strong>Você não está pagando por curiosos.</strong>
-                <span>Você entra em um canal onde o cliente já viu a casa dele com novos modelos de portão e está mais perto de pedir orçamento.</span>
-              </div>
+        <section className="partner-landing-hero">
+          <div className="shell partner-landing-grid">
+            <div className="partner-landing-copy">
+              <p className="eyebrow">Mais que leads: intenção de compra</p>
+              <h1>Receba contatos de quem já viu o portão novo na própria casa</h1>
+              <p>
+                A pessoa não chega perguntando qualquer coisa. Ela chega com uma
+                fachada, uma ideia visual e vontade de saber quanto custa
+                transformar aquilo em realidade.
+              </p>
+              <a href="#cadastro" className="button partner-main-cta">
+                Quero testar 30 dias grátis <FiArrowRight />
+              </a>
+              <small className="partner-hero-note">
+                <FiShield /> Primeiro mês grátis. Depois R$ 299/mês. Sem fidelidade.
+              </small>
             </div>
-            <div className="partner-hero-card">
-              <img src={assets.installer} alt="Instalador avaliando projeto de portão com cliente" />
-              <div className="price-ribbon">
-                <small>Plano parceiro • 1º mês grátis</small>
-                <strong>R$ 299/mês</strong>
-                <span>Teste por 30 dias antes de continuar.</span>
-              </div>
+
+            <div className="partner-lead-visual">
+              <img src={assets.partner2bHero} alt="Cliente vendo opções de portão com um parceiro Meu Portão IA" />
             </div>
           </div>
         </section>
 
-        <section className="shell partner-problem">
-          <div>
-            <p className="eyebrow">O problema do mercado</p>
-            <h2>Muitos orçamentos começam sem clareza.</h2>
-            <p>O cliente não sabe se quer portão de correr, basculante, fechado, vazado, ripado, de alumínio ou de ferro. Isso faz o profissional perder tempo com conversas pouco qualificadas. A plataforma ajuda a transformar curiosidade em intenção real de compra.</p>
+        <section className="partner-desire-strip">
+          <div className="shell">
+            <h2>Você entra na conversa depois que o desejo já foi criado.</h2>
+            <div className="partner-proof-flow">
+              {proofSteps.map(([icon, label]) => (
+                <span key={label}>{icon}<strong>{label}</strong></span>
+              ))}
+            </div>
           </div>
-          <ul>
-            {marketProblems.map((problem) => <li key={problem}><FiCheck />{problem}</li>)}
-          </ul>
         </section>
 
-        <section className="partner-how">
+        <section className="partner-change shell">
+          <p className="eyebrow">O que muda para sua venda</p>
+          <h2>Menos curiosidade solta. Mais conversa com intenção.</h2>
+          <div className="partner-change-grid">
+            {comparisonItems.map(([beforeTitle, beforeText, afterTitle, afterText]) => (
+              <article key={beforeTitle}>
+                <p className="change-label before">Antes:</p>
+                <h3>{beforeTitle}</h3>
+                <blockquote>{beforeText}</blockquote>
+                <FiArrowRight />
+                <p className="change-label after">Agora:</p>
+                <h3>{afterTitle}</h3>
+                <blockquote>{afterText}</blockquote>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="partner-flow">
           <div className="shell">
             <div className="center-heading">
               <p className="eyebrow">Como funciona</p>
-              <h2>Da simulação ao orçamento em 4 passos</h2>
+              <h2>Como o lead chega até você</h2>
             </div>
-            <div className="partner-steps">
-              {[
-                [<FiUpload />, "1", "O cliente envia a foto da fachada"],
-                [<FiImage />, "2", "A IA gera ideias de portões aplicadas na casa dele"],
-                [<FiSliders />, "3", "O cliente escolhe os modelos e informa dados básicos"],
-                [<FiUsers />, "4", "O parceiro recebe o lead qualificado e entra em contato"],
-              ].map(([icon, number, text]) => (
-                <article key={number}>
-                  <span>{icon}</span>
-                  <strong>{number}</strong>
+            <div className="partner-flow-grid">
+              {processSteps.map(([image, text], index) => (
+                <article key={text}>
+                  <strong>{index + 1}</strong>
+                  <img src={image} alt="" />
                   <p>{text}</p>
                 </article>
               ))}
@@ -836,86 +971,45 @@ function CompaniesPage({ backendEnabled }) {
           </div>
         </section>
 
-        <section className="shell partner-benefits">
-          <div className="section-heading">
-            <div><p className="eyebrow">O que o parceiro ganha</p><h2>Mais contexto antes da primeira ligação</h2></div>
-            <a href="#cadastro" className="button button-secondary">Começar teste grátis <FiArrowRight /></a>
+        <section className="partner-faq-section shell">
+          <div className="partner-faq-heading">
+            <p className="eyebrow">Perguntas frequentes</p>
+            <h2>Antes de entrar, o que você precisa saber</h2>
+            <p>Respostas diretas para deixar claro como a parceria funciona e onde o Meu Portão IA entra na venda.</p>
           </div>
-          <div className="partner-benefit-grid">
-            {partnerBenefits.map(([icon, title, text]) => <article key={title}><span>{icon}</span><h3>{title}</h3><p>{text}</p></article>)}
+          <div className="partner-faq-list">
+            {faqItems.map(([question, answer], index) => (
+              <details key={question} open={index < 2}>
+                <summary>{question}</summary>
+                <p>{answer}</p>
+              </details>
+            ))}
           </div>
         </section>
 
-        <section className="partner-value">
-          <div className="shell partner-value-grid">
-            <div>
-              <p className="eyebrow">Por que vale R$ 299/mês</p>
-              <h2>Um único serviço fechado pode pagar a assinatura com folga.</h2>
-              <p>Um portão residencial pode representar uma venda de alguns milhares de reais. Se a plataforma gerar apenas um novo cliente fechado, o plano mensal já pode se pagar.</p>
-            </div>
+        <section className="partner-signup shell" id="cadastro">
+          <article className="partner-plan-card">
+            <span>Experimente sem risco</span>
+            <h2>1º mês grátis</h2>
+            <p>Depois do teste</p>
+            <strong>R$ 299<small>/mês</small></strong>
             <ul>
-              {["Você não precisa investir sozinho em anúncios.", "Você não precisa criar tecnologia de simulação por IA.", "Você recebe oportunidades já filtradas.", "Você entra em um canal novo de aquisição de clientes.", "Você testa por 30 dias sem pagar mensalidade."].map((item) => <li key={item}><FiCheck />{item}</li>)}
+              {priceBenefits.map((benefit) => <li key={benefit}><FiCheck />{benefit}</li>)}
             </ul>
-          </div>
-        </section>
-
-        <section className="partner-pricing" id="preco">
-          <div className="shell">
-            <article className="partner-price-card">
-              <div>
-                <span className="price-badge">1º mês grátis</span>
-                <p className="eyebrow">Parceiro Padrão</p>
-                <h2>R$ 299<span>/mês</span></h2>
-                <p>Após o período gratuito, a continuidade é opcional. Você só permanece se quiser continuar recebendo oportunidades pela plataforma.</p>
-                <a href="#cadastro" className="button">Começar teste grátis <FiArrowRight /></a>
-              </div>
-              <ul>
-                {pricingBenefits.map((benefit) => <li key={benefit}><FiCheck />{benefit}</li>)}
-              </ul>
-            </article>
-          </div>
-        </section>
-
-        <section className="shell partner-fit">
-          <div>
-            <p className="eyebrow">Para quem é indicado</p>
-            <h2>Feito para quem atende portões todos os dias.</h2>
-          </div>
-          <div className="fit-list">
-            {["Serralherias", "Fabricantes de portões", "Instaladores de portões automáticos", "Empresas de automação", "Empresas de esquadrias metálicas", "Profissionais que atendem casas, condomínios e pequenos comércios"].map((item) => <span key={item}>{item}</span>)}
-          </div>
-        </section>
-
-        <section className="partner-now">
-          <div className="shell partner-now-grid">
-            <div>
-              <p className="eyebrow light">Por que entrar agora?</p>
-              <h2>O cliente está cada vez mais visual: ele quer ver antes de comprar.</h2>
-            </div>
-            <div className="now-points">
-              {["Quem responde rápido e mostra boas ideias ganha vantagem.", "A tecnologia ajuda pequenas empresas a competirem com empresas maiores.", "Você entra cedo em uma plataforma especializada em portões.", "Ao invés de disputar apenas preço, você disputa com apresentação, confiança e solução."].map((item) => <p key={item}><FiArrowRight />{item}</p>)}
-            </div>
-          </div>
-        </section>
-
-        <section className="shell trust-notes">
-          {["Simulações são ilustrativas e o orçamento final depende de medição e avaliação técnica.", "Os parceiros continuam responsáveis pelo orçamento, fabricação, instalação, garantia e atendimento ao cliente.", "A plataforma atua como canal de conexão e qualificação de oportunidades."].map((note) => <article key={note}><FiShield /><p>{note}</p></article>)}
-        </section>
-
-        <section className="shell partner-faq">
-          <div className="section-heading"><div><p className="eyebrow">FAQ</p><h2>Perguntas comuns dos parceiros</h2></div></div>
-          <div className="faq-list">
-            {faqItems.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}
-          </div>
-        </section>
-
-        <section className="shell partner-form-section" id="cadastro">
-          <div>
+            <div className="cancel-note"><FiShield /> Cancele quando quiser. Sem burocracia.</div>
+          </article>
+          <div className="partner-signup-form">
             <p className="eyebrow">Cadastro de parceiro</p>
-            <h2>Pronto para receber clientes mais preparados para comprar?</h2>
-            <p>Entre como parceiro, teste por 30 dias grátis e veja como a simulação com IA pode ajudar sua empresa a vender mais portões.</p>
+            <h2>Solicite seu cadastro de parceiro</h2>
+            <p>Preencha os dados e nossa equipe entra em contato para validar sua região, explicar o teste gratuito e liberar o acesso.</p>
+            <PartnerForm backendEnabled={backendEnabled} />
           </div>
-          <PartnerForm backendEnabled={backendEnabled} />
+        </section>
+
+        <section className="shell partner-trust-row">
+          {trustItems.map(([icon, text]) => (
+            <article key={text}>{icon}<p>{text}</p></article>
+          ))}
         </section>
       </main>
       <Footer />
@@ -932,11 +1026,11 @@ function PrivacyPage() {
         <h1>Política de privacidade</h1>
         <p className="privacy-lead">Última atualização: 15 de junho de 2026.</p>
         {[
-          ["1. Imagens da fachada", "Você envia a imagem voluntariamente para criar simulações de portões. Neste MVP, a imagem é usada apenas no navegador e não é salva no banco."],
+          ["1. Imagens da fachada", "Você envia a imagem voluntariamente para criar simulações de portões. Neste MVP, a foto é transmitida ao backend e à OpenAI para gerar a transformação, mas não é salva no banco do Meu Portão IA."],
           ["2. Dados de contato", "Nome, WhatsApp, cidade, bairro e preferências são salvos no Convex quando você solicita orçamento ou demonstra interesse em ser parceiro."],
           ["3. Compartilhamento", "Seus dados poderão ser compartilhados com empresas parceiras somente quando você marcar a autorização no formulário de orçamento."],
           ["4. Exclusão", "Você pode solicitar a exclusão dos dados enviados pelos canais de contato da plataforma. A versão futura terá um fluxo dedicado para esse pedido."],
-          ["5. Natureza do projeto", "O Meu Portão IA apresentado aqui é um MVP demonstrativo. Não há pagamento, autenticação ou armazenamento permanente de imagens nesta versão."],
+          ["5. Natureza do projeto", "O Meu Portão IA apresentado aqui é um MVP demonstrativo. Não há pagamento, autenticação ou armazenamento permanente das imagens enviadas nesta versão."],
         ].map(([title, text]) => <section key={title}><h2>{title}</h2><p>{text}</p></section>)}
         <div className="privacy-note"><FiShield /><div><strong>Privacidade por escolha</strong><p>Nunca autorizamos o contato de parceiros sem seu consentimento explícito.</p></div></div>
       </main>

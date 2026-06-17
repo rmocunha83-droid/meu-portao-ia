@@ -15,6 +15,8 @@ When implementing from a selected generated mock, treat that image as the source
 - Keep the hero transformation visually clear: copy must not cover the before-and-after image, especially on mobile and narrow browser widths.
 - Treat the footer as a conversion and trust area with clear paths for moradores, empresas, simulation CTA, and privacy reassurance.
 - The `/empresas` page should sell the partner offer to serralherias, gate manufacturers, automatic gate installers, automation companies, and local service owners. Keep the promise concrete: qualified opportunities from users who already simulated gate options on their own facade, not generic leads. Standard partner price is R$ 299/month with the first month free for new partners.
+- The `/empresas` page should read as a continuous landing page, not a menu-led product/dashboard. Avoid section navigation, tabs, sidebars, or heavy menus; use a simple header with logo + one CTA and guide the reader through promise, proof, comparison, process, FAQ, price, and signup in one scroll.
+- The AI simulation should preserve the same house and camera angle while replacing the gate. It may subtly improve old walls, lighting, exposure, and curb appeal so the after image feels polished, but the result must remain believable as the same facade and keep the gate as the main transformation.
 
 <!-- convex-ai-start -->
 

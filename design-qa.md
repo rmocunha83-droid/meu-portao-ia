@@ -1,25 +1,24 @@
-# Design QA
+# Design QA - Meu Portao IA / Empresas
 
-- Source visual direction: Casa Brasileira, selected on 2026-06-15
-- Implementation URL: `http://127.0.0.1:5173/`
-- Viewport inspected: 627 x 714
-- State: Home, initial state, before-and-after control at 50%
+## Source of truth
+- Selected direction: Casa Brasileira, model 2B landing page.
+- Source mock image: `/Users/romeucunha/.codex/generated_images/019ec91d-a196-7f50-b97a-a04241da21c4/ig_07bef2594b389372016a31fc260b888191bd111b8fdeba6ea2.png`.
+- User marked the left/source mock image as the preferred photo direction.
 
-**Findings**
+## What changed
+- `/empresas` is now a continuous landing page, not a menu-led page.
+- Header on `/empresas` is simplified to logo plus one CTA.
+- Hero and process photos were replaced with crops from the marked model 2B source mock.
+- FAQ was moved before the price/cadastro section to answer objections before presenting the offer.
+- The first two FAQ answers are open by default: no sales commission and the site does not fabricate/install gates.
+- Mobile hero now uses the full hero composition instead of cropping the embedded lead cards.
 
-- The local site is reachable at `http://127.0.0.1:5173/`; the earlier connection-refused state was resolved by keeping the Vite preview running.
-- Browser inspection confirmed 13 page images, all loaded successfully.
-- Browser inspection confirmed no repeated image source on the Home page.
-- The hero text no longer overlaps the before-and-after transformation; on the inspected mobile/narrow viewport, the transformation appears first and the copy sits in a separate ivory card below it.
-- The footer now has clearer navigation, a stronger brand block, a visible simulation CTA, company links, and a privacy reassurance card.
-- Production build passes through the local Vite build command.
+## Verification
+- Production build passed with Vite on 2026-06-16.
+- Local server responded with HTTP 200 at `http://127.0.0.1:5174/empresas`.
+- Browser checks confirmed the mobile hero uses `/assets/partner-2b-hero.webp`, no visible duplicate lead-card DOM remains, and FAQ contains five questions.
+- Source inspection confirms `.partner-faq-section` renders before `.partner-signup`, and the first two `<details>` are open by default.
 
-**Patches Made**
-
-- Added a separate natural wood gate image so “Ripado” and “Madeira” no longer reuse the same photo.
-- Replaced the repeated hero “after” image in the “Moderno” card and result card with the existing metal gate asset.
-- Refined the hero layout so the copy and before-and-after comparison are separate components instead of competing for the same image area.
-- Reworked the footer into a more useful conversion and trust section.
-- Kept the Casa Brasileira visual language: warm residential photography, ivory surfaces, terracotta actions, forest-green details, and a welcoming renovation tone.
-
-final result: passed
+## Notes
+- The hero image intentionally includes the generated lead cards from the source mock as part of the photo composition. Separate floating DOM cards were removed to avoid duplication.
+- Local screenshots were used during review, but are not required for the published site.

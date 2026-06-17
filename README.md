@@ -11,9 +11,9 @@ O MVP usa Convex para salvar:
 - pedidos de orçamento dos moradores
 - cadastros de empresas parceiras
 
-As fotos enviadas no simulador continuam apenas no navegador nesta versão.
+As fotos enviadas no simulador são transmitidas ao endpoint Convex para gerar a simulação com a OpenAI, mas não são salvas no banco deste MVP.
 
-Para produção, configure `VITE_CONVEX_URL` na Vercel com a URL da implantação Convex cloud.
+Para produção, configure `VITE_CONVEX_URL` e `VITE_CONVEX_SITE_URL` na Vercel com as URLs da implantação Convex cloud/site. Configure também `OPENAI_API_KEY` no ambiente do Convex para liberar a geração de imagens.
 
 ## Rodar localmente
 
