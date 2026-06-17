@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Meu Portao IA">
+  <rect width="64" height="64" rx="16" fill="#fbf6ed"/>
+  <rect x="7" y="7" width="50" height="50" rx="12" fill="none" stroke="#31573a" stroke-width="4"/>
+  <path d="M18 30.5 32 18l14 12.5" fill="none" stroke="#31573a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M22 29v18h20V29" fill="none" stroke="#31573a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M28 47V34h8v13" fill="none" stroke="#31573a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M46 20h4M49 17v6" stroke="#c95525" stroke-width="3" stroke-linecap="round"/>
+</svg>
