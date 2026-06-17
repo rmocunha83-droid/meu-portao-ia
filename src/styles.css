@@ -424,6 +424,53 @@ textarea { height: 125px; resize: vertical; line-height: 1.5; }
   font-size: .72rem;
   font-weight: 800;
 }
+.lead-delivery-box {
+  display: grid;
+  grid-template-columns: .9fr 1.1fr;
+  gap: 18px;
+  margin-top: 22px;
+  padding: 20px;
+  border: 1px solid #dfd4c6;
+  border-radius: 12px;
+  background: #f1ece3;
+}
+.lead-delivery-box h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.lead-delivery-box p {
+  margin-bottom: 0;
+  font-size: .82rem;
+}
+.lead-delivery-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.lead-delivery-actions select {
+  min-height: 52px;
+}
+.delivery-history {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #ded4c7;
+  color: #4d554b;
+  font-size: .78rem;
+}
+.delivery-history strong {
+  margin-right: 4px;
+}
+.delivery-history span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #e4eddf;
+  color: var(--green);
+  font-weight: 700;
+}
 .admin-empty,
 .admin-loading,
 .admin-error {
@@ -1869,6 +1916,11 @@ footer {
 
   .admin-card-head {
     display: grid;
+  }
+
+  .lead-delivery-box,
+  .lead-delivery-actions {
+    grid-template-columns: 1fr;
   }
 
   .partner-simple-header {

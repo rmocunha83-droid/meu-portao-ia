@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as deliveries from "../deliveries.js";
 import type * as http from "../http.js";
 import type * as leads from "../leads.js";
 import type * as simulations from "../simulations.js";
@@ -19,6 +20,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  deliveries: typeof deliveries;
   http: typeof http;
   leads: typeof leads;
   simulations: typeof simulations;

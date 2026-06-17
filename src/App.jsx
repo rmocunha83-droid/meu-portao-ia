@@ -13,6 +13,7 @@ import {
   FiInbox,
   FiMapPin,
   FiMenu,
+  FiMessageCircle,
   FiShield,
   FiSliders,
   FiUpload,
@@ -1033,6 +1034,44 @@ function formatDate(timestamp) {
   }).format(new Date(timestamp));
 }
 
+function whatsappNumber(value = "") {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.startsWith("55") ? digits : `55${digits}`;
+}
+
+function buildPartnerMessage(lead) {
+  const selectedImage = lead.selectedGeneratedImageUrl
+    ? `\nImagem escolhida: ${lead.selectedGeneratedImageUrl}`
+    : "";
+  const originalImage = lead.simulation?.originalImageUrl
+    ? `\nFoto original: ${lead.simulation.originalImageUrl}`
+    : "";
+
+  return [
+    "Novo lead do Meu Portão IA",
+    "",
+    `Nome: ${lead.name}`,
+    `WhatsApp: ${lead.whatsapp}`,
+    `Cidade/bairro: ${lead.city} - ${lead.neighborhood}`,
+    `Prazo: ${lead.timing}`,
+    `Imóvel: ${lead.property}`,
+    `Modelo escolhido: ${lead.selectedModel}`,
+    `Preferências: ${lead.selectedStyles?.join(", ") || "não informado"}`,
+    lead.description ? `Pedido: ${lead.description}` : null,
+    selectedImage || null,
+    originalImage || null,
+    "",
+    "O cliente aceitou receber contato de empresas parceiras para orçamento.",
+  ].filter(Boolean).join("\n");
+}
+
+function whatsAppUrl(partner, message) {
+  const number = whatsappNumber(partner?.whatsapp || "");
+  if (!number) return "";
+  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+}
+
 function AdminLogin({ draftSecret, setDraftSecret, onSubmit }) {
   return (
     <section className="admin-login shell">
@@ -1079,7 +1118,39 @@ function AdminImageGallery({ simulation, selectedImageUrl }) {
   );
 }
 
-function AdminLeadCard({ lead }) {
+function AdminLeadCard({ lead, partners, adminSecret }) {
+  const createDelivery = useMutation(api.deliveries.createLeadDelivery);
+  const [partnerId, setPartnerId] = useState(partners[0]?._id || "");
+  const [sending, setSending] = useState(false);
+  const [deliveryError, setDeliveryError] = useState("");
+  const selectedPartner = partners.find((partner) => partner._id === partnerId);
+  const message = buildPartnerMessage(lead);
+  const url = selectedPartner ? whatsAppUrl(selectedPartner, message) : "";
+
+  const sendToPartner = async () => {
+    setDeliveryError("");
+    if (!selectedPartner || !url) {
+      setDeliveryError("Escolha um parceiro com WhatsApp válido.");
+      return;
+    }
+
+    try {
+      setSending(true);
+      await createDelivery({
+        adminSecret,
+        leadId: lead._id,
+        partnerId: selectedPartner._id,
+        channel: "whatsapp",
+        message,
+      });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setDeliveryError(err instanceof Error ? err.message : "Não foi possível registrar o envio.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <article className="admin-card admin-lead-card">
       <div className="admin-card-head">
@@ -1099,6 +1170,36 @@ function AdminLeadCard({ lead }) {
       <p className="admin-note"><strong>Preferências:</strong> {lead.selectedStyles?.join(", ") || "Sem estilos"}</p>
       {lead.description && <p className="admin-note"><strong>Pedido:</strong> {lead.description}</p>}
       <AdminImageGallery simulation={lead.simulation} selectedImageUrl={lead.selectedGeneratedImageUrl} />
+      <div className="lead-delivery-box">
+        <div>
+          <p className="eyebrow">Enviar para parceiro</p>
+          <h4>Compartilhar este lead por WhatsApp</h4>
+          <p>O envio fica registrado aqui antes de abrir a conversa com a mensagem pronta.</p>
+        </div>
+        <div className="lead-delivery-actions">
+          <select value={partnerId} onChange={(event) => setPartnerId(event.target.value)} disabled={!partners.length}>
+            {partners.length ? partners.map((partner) => (
+              <option value={partner._id} key={partner._id}>
+                {partner.company} ({partner.deliveryCount || 0} leads)
+              </option>
+            )) : <option>Nenhum parceiro cadastrado</option>}
+          </select>
+          <button className="button" type="button" onClick={sendToPartner} disabled={sending || !partners.length}>
+            {sending ? "Registrando..." : <><FiMessageCircle /> Enviar no WhatsApp</>}
+          </button>
+        </div>
+        {deliveryError && <p className="form-error full">{deliveryError}</p>}
+        {lead.deliveries?.length > 0 && (
+          <div className="delivery-history">
+            <strong>Já enviado para:</strong>
+            {lead.deliveries.map((delivery) => (
+              <span key={delivery._id}>
+                {delivery.partnerCompany} em {formatDate(delivery.createdAt)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </article>
   );
 }
@@ -1119,6 +1220,8 @@ function AdminPartnerCard({ partner }) {
         <p><strong>WhatsApp</strong>{partner.whatsapp}</p>
         <p><strong>Serviço</strong>{partner.serviceType || "Não informado"}</p>
         <p><strong>Região</strong>{partner.serviceRegion || "Não informada"}</p>
+        <p><strong>Leads recebidos</strong>{partner.deliveryCount || 0}</p>
+        <p><strong>Último envio</strong>{partner.lastDeliveredAt ? formatDate(partner.lastDeliveredAt) : "Nenhum envio"}</p>
       </div>
     </article>
   );
@@ -1224,7 +1327,12 @@ function AdminPage({ backendEnabled }) {
               </div>
               <div className="admin-list">
                 {overview.leads.length ? overview.leads.map((lead) => (
-                  <AdminLeadCard lead={lead} key={lead._id} />
+                  <AdminLeadCard
+                    lead={lead}
+                    partners={overview.partners}
+                    adminSecret={adminSecret}
+                    key={lead._id}
+                  />
                 )) : <p className="admin-empty">Nenhum lead de morador ainda.</p>}
               </div>
             </section>

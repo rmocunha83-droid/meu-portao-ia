@@ -77,11 +77,25 @@ export const adminOverview = query({
 
     const limit = Math.min(Math.max(args.limit ?? DEFAULT_LIMIT, 1), 80);
 
-    const [leads, partners, simulations] = await Promise.all([
+    const [leads, partners, simulations, deliveries] = await Promise.all([
       ctx.db.query("leadRequests").withIndex("by_createdAt").order("desc").take(limit),
       ctx.db.query("partnerRequests").withIndex("by_createdAt").order("desc").take(limit),
       ctx.db.query("simulations").withIndex("by_createdAt").order("desc").take(limit),
+      ctx.db.query("leadDeliveries").withIndex("by_createdAt").order("desc").take(160),
     ]);
+
+    const partnersWithStats = await Promise.all(partners.map(async (partner) => {
+      const stats = await ctx.db
+        .query("partnerLeadStats")
+        .withIndex("by_partnerId", (q) => q.eq("partnerId", partner._id))
+        .unique();
+
+      return {
+        ...partner,
+        deliveryCount: stats?.deliveryCount || 0,
+        lastDeliveredAt: stats?.lastDeliveredAt || null,
+      };
+    }));
 
     const simulationMap = new Map(
       (await Promise.all(simulations.map((simulation) => serializeSimulation(ctx, simulation))))
@@ -97,6 +111,7 @@ export const adminOverview = query({
       return {
         ...lead,
         selectedGeneratedImageUrl: await imageUrl(ctx, lead.selectedGeneratedImageId),
+        deliveries: deliveries.filter((delivery) => delivery.leadId === lead._id),
         simulation,
       };
     }));
@@ -105,7 +120,8 @@ export const adminOverview = query({
       ok: true,
       error: null,
       leads: leadsWithImages,
-      partners,
+      partners: partnersWithStats,
+      deliveries,
       simulations: Array.from(simulationMap.values()),
     };
   },

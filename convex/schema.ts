@@ -39,6 +39,24 @@ export default defineSchema({
   })
     .index("by_createdAt", ["createdAt"])
     .index("by_city_and_createdAt", ["city", "createdAt"]),
+  leadDeliveries: defineTable({
+    leadId: v.id("leadRequests"),
+    partnerId: v.id("partnerRequests"),
+    partnerCompany: v.string(),
+    partnerWhatsapp: v.string(),
+    channel: v.string(),
+    message: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_lead_and_createdAt", ["leadId", "createdAt"])
+    .index("by_partner_and_createdAt", ["partnerId", "createdAt"]),
+  partnerLeadStats: defineTable({
+    partnerId: v.id("partnerRequests"),
+    deliveryCount: v.number(),
+    lastDeliveredAt: v.optional(v.number()),
+  })
+    .index("by_partnerId", ["partnerId"]),
   partnerRequests: defineTable({
     company: v.string(),
     owner: v.string(),
