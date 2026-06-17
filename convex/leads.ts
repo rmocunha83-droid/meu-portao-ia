@@ -29,6 +29,8 @@ export const createLead = mutation({
     source: v.string(),
     pagePath: v.optional(v.string()),
     photoAttached: v.boolean(),
+    simulationId: v.optional(v.id("simulations")),
+    selectedGeneratedImageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     if (!args.consent) {
@@ -49,6 +51,8 @@ export const createLead = mutation({
       source: requiredText(args.source, "Origem"),
       pagePath: optionalText(args.pagePath),
       photoAttached: args.photoAttached,
+      simulationId: args.simulationId,
+      selectedGeneratedImageId: args.selectedGeneratedImageId,
       createdAt: Date.now(),
     });
 

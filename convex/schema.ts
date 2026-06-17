@@ -2,6 +2,23 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  simulations: defineTable({
+    originalImageId: v.id("_storage"),
+    originalFileName: v.string(),
+    originalContentType: v.string(),
+    selectedStyles: v.array(v.string()),
+    description: v.optional(v.string()),
+    generatedImages: v.array(v.object({
+      storageId: v.id("_storage"),
+      name: v.string(),
+      description: v.string(),
+      revisedPrompt: v.optional(v.string()),
+    })),
+    source: v.string(),
+    pagePath: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_createdAt", ["createdAt"]),
   leadRequests: defineTable({
     name: v.string(),
     whatsapp: v.string(),
@@ -16,6 +33,8 @@ export default defineSchema({
     source: v.string(),
     pagePath: v.optional(v.string()),
     photoAttached: v.boolean(),
+    simulationId: v.optional(v.id("simulations")),
+    selectedGeneratedImageId: v.optional(v.id("_storage")),
     createdAt: v.number(),
   })
     .index("by_createdAt", ["createdAt"])

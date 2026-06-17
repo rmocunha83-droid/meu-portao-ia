@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -11,6 +12,11 @@ const corsHeaders = {
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const SUPPORTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const generatedModelNames = [
+  "Transformação elegante",
+  "Portão com presença",
+  "Fachada valorizada",
+];
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -50,6 +56,25 @@ function buildPrompt(styles: string, description: string) {
   ].join(" ");
 }
 
+function generatedDescription(index: number, styles: string) {
+  const styleText = styles || "o estilo escolhido";
+  const descriptions = [
+    `Opção com foco em ${styleText.toLowerCase()}, mantendo a mesma casa e melhorando a presença da entrada.`,
+    "Uma leitura mais sofisticada da fachada, com portão novo, acabamento limpo e iluminação mais bonita.",
+    "Alternativa para comparar proporção, privacidade e valorização visual antes de pedir orçamento.",
+  ];
+  return descriptions[index] || descriptions[0];
+}
+
+function base64ToBlob(base64: string) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new Blob([bytes], { type: "image/png" });
+}
+
 http.route({
   path: "/generate-gate-simulation",
   method: "OPTIONS",
@@ -59,7 +84,7 @@ http.route({
 http.route({
   path: "/generate-gate-simulation",
   method: "POST",
-  handler: httpAction(async (_ctx, req) => {
+  handler: httpAction(async (ctx, req) => {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return jsonResponse({
@@ -115,20 +140,53 @@ http.route({
       return jsonResponse({ error: message }, response.status);
     }
 
-    const images = Array.isArray(payload?.data)
+    const openAiImages = Array.isArray(payload?.data)
       ? payload.data
-          .map((item: { b64_json?: string; revised_prompt?: string }) => ({
-            url: item.b64_json ? `data:image/png;base64,${item.b64_json}` : null,
-            revisedPrompt: item.revised_prompt || null,
-          }))
-          .filter((item: { url: string | null }) => Boolean(item.url))
+          .map((item: { b64_json?: string; revised_prompt?: string }) => item)
+          .filter((item: { b64_json?: string }) => Boolean(item.b64_json))
       : [];
 
-    if (images.length === 0) {
+    if (openAiImages.length === 0) {
       return jsonResponse({ error: "A geração terminou sem retornar imagens." }, 502);
     }
 
-    return jsonResponse({ images });
+    const originalImageId = await ctx.storage.store(uploaded);
+    const generatedImages = await Promise.all(
+      openAiImages.map(async (item: { b64_json?: string; revised_prompt?: string }, index: number) => {
+        const blob = base64ToBlob(item.b64_json || "");
+        const storageId = await ctx.storage.store(blob);
+        const url = await ctx.storage.getUrl(storageId);
+        return {
+          storageId,
+          url,
+          name: generatedModelNames[index] || `Opção ${index + 1}`,
+          description: generatedDescription(index, styles),
+          revisedPrompt: item.revised_prompt || undefined,
+        };
+      }),
+    );
+
+    const simulation = await ctx.runMutation(internal.simulations.createSimulation, {
+      originalImageId,
+      originalFileName: fileName(uploaded),
+      originalContentType: uploaded.type,
+      selectedStyles: styles.split(",").map((style) => style.trim()).filter(Boolean),
+      description: description || undefined,
+      generatedImages: generatedImages.map(({ storageId, name, description: imageDescription, revisedPrompt }) => ({
+        storageId,
+        name,
+        description: imageDescription,
+        revisedPrompt,
+      })),
+      source: "simulator",
+      pagePath: "/simular",
+    });
+
+    return jsonResponse({
+      simulationId: simulation.id,
+      originalImageId,
+      images: generatedImages,
+    });
   }),
 });
 

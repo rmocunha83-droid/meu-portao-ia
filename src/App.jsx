@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
   FiArrowRight,
@@ -10,6 +10,7 @@ import {
   FiGrid,
   FiHome,
   FiImage,
+  FiInbox,
   FiMapPin,
   FiMenu,
   FiShield,
@@ -490,6 +491,8 @@ function LeadModalContent({
         source: "simulator",
         pagePath: window.location.pathname,
         photoAttached,
+        simulationId: model.simulationId || undefined,
+        selectedGeneratedImageId: model.storageId || undefined,
       });
       setSuccess(true);
     } catch (err) {
@@ -625,9 +628,11 @@ function SimulatorPage({ backendEnabled }) {
       }
 
       setGeneratedResults(images.map((item, index) => ({
-        name: generatedModelNames[index] || `Opção ${index + 1}`,
-        description: generatedDescription(index, selected),
+        name: item.name || generatedModelNames[index] || `Opção ${index + 1}`,
+        description: item.description || generatedDescription(index, selected),
         image: item.url,
+        simulationId: payload?.simulationId || null,
+        storageId: item.storageId || null,
         position: "50%",
         aiGenerated: true,
       })));
@@ -1017,6 +1022,242 @@ function CompaniesPage({ backendEnabled }) {
   );
 }
 
+function formatDate(timestamp) {
+  if (!timestamp) return "Sem data";
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function AdminLogin({ draftSecret, setDraftSecret, onSubmit }) {
+  return (
+    <section className="admin-login shell">
+      <p className="eyebrow">Área interna</p>
+      <h1>Admin Meu Portão IA</h1>
+      <p>Consulte empresas, leads e imagens geradas pelos interessados.</p>
+      <form onSubmit={onSubmit} className="admin-login-card">
+        <label>
+          Senha do admin
+          <input
+            type="password"
+            value={draftSecret}
+            onChange={(event) => setDraftSecret(event.target.value)}
+            placeholder="Digite a senha configurada no Convex"
+            required
+          />
+        </label>
+        <button className="button" type="submit">Entrar no admin <FiArrowRight /></button>
+      </form>
+    </section>
+  );
+}
+
+function AdminImageGallery({ simulation, selectedImageUrl }) {
+  if (!simulation) {
+    return <p className="admin-empty">Este lead ainda não tem imagens salvas.</p>;
+  }
+
+  return (
+    <div className="admin-gallery">
+      {simulation.originalImageUrl && (
+        <figure>
+          <img src={simulation.originalImageUrl} alt="Foto original enviada pelo interessado" />
+          <figcaption>Foto original</figcaption>
+        </figure>
+      )}
+      {simulation.generatedImages?.map((image) => (
+        <figure className={selectedImageUrl === image.url ? "selected" : ""} key={image.storageId}>
+          <img src={image.url} alt={image.name} />
+          <figcaption>{image.name}{selectedImageUrl === image.url ? " escolhida" : ""}</figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+function AdminLeadCard({ lead }) {
+  return (
+    <article className="admin-card admin-lead-card">
+      <div className="admin-card-head">
+        <div>
+          <p className="eyebrow">Lead de morador</p>
+          <h3>{lead.name}</h3>
+          <p>{lead.city} • {lead.neighborhood}</p>
+        </div>
+        <span>{formatDate(lead.createdAt)}</span>
+      </div>
+      <div className="admin-details-grid">
+        <p><strong>WhatsApp</strong>{lead.whatsapp}</p>
+        <p><strong>Prazo</strong>{lead.timing}</p>
+        <p><strong>Imóvel</strong>{lead.property}</p>
+        <p><strong>Modelo escolhido</strong>{lead.selectedModel}</p>
+      </div>
+      <p className="admin-note"><strong>Preferências:</strong> {lead.selectedStyles?.join(", ") || "Sem estilos"}</p>
+      {lead.description && <p className="admin-note"><strong>Pedido:</strong> {lead.description}</p>}
+      <AdminImageGallery simulation={lead.simulation} selectedImageUrl={lead.selectedGeneratedImageUrl} />
+    </article>
+  );
+}
+
+function AdminPartnerCard({ partner }) {
+  return (
+    <article className="admin-card">
+      <div className="admin-card-head">
+        <div>
+          <p className="eyebrow">Parceiro</p>
+          <h3>{partner.company}</h3>
+          <p>{partner.city}</p>
+        </div>
+        <span>{formatDate(partner.createdAt)}</span>
+      </div>
+      <div className="admin-details-grid">
+        <p><strong>Responsável</strong>{partner.owner}</p>
+        <p><strong>WhatsApp</strong>{partner.whatsapp}</p>
+        <p><strong>Serviço</strong>{partner.serviceType || "Não informado"}</p>
+        <p><strong>Região</strong>{partner.serviceRegion || "Não informada"}</p>
+      </div>
+    </article>
+  );
+}
+
+function AdminSimulationCard({ simulation }) {
+  return (
+    <article className="admin-card">
+      <div className="admin-card-head">
+        <div>
+          <p className="eyebrow">Simulação salva</p>
+          <h3>{simulation.selectedStyles?.join(", ") || "Sem estilo informado"}</h3>
+          <p>{formatDate(simulation.createdAt)}</p>
+        </div>
+      </div>
+      {simulation.description && <p className="admin-note">{simulation.description}</p>}
+      <AdminImageGallery simulation={simulation} />
+    </article>
+  );
+}
+
+function AdminPage({ backendEnabled }) {
+  const [draftSecret, setDraftSecret] = useState(() => sessionStorage.getItem("adminSecret") || "");
+  const [adminSecret, setAdminSecret] = useState(() => sessionStorage.getItem("adminSecret") || "");
+  const overview = useQuery(
+    api.simulations.adminOverview,
+    backendEnabled && adminSecret ? { adminSecret, limit: 30 } : "skip",
+  );
+
+  const submit = (event) => {
+    event.preventDefault();
+    const value = draftSecret.trim();
+    if (!value) return;
+    sessionStorage.setItem("adminSecret", value);
+    setAdminSecret(value);
+  };
+
+  const logout = () => {
+    sessionStorage.removeItem("adminSecret");
+    setAdminSecret("");
+    setDraftSecret("");
+  };
+
+  if (!backendEnabled) {
+    return (
+      <>
+        <Header />
+        <main className="admin-page">
+          <section className="admin-login shell">
+            <p className="eyebrow">Área interna</p>
+            <h1>Admin indisponível</h1>
+            <p>A conexão com o Convex precisa estar ativa para consultar os dados.</p>
+          </section>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!adminSecret) {
+    return (
+      <>
+        <Header />
+        <main className="admin-page">
+          <AdminLogin draftSecret={draftSecret} setDraftSecret={setDraftSecret} onSubmit={submit} />
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="admin-page">
+        <section className="admin-hero shell">
+          <div>
+            <p className="eyebrow">Área interna</p>
+            <h1>Painel de leads</h1>
+            <p>Veja os interessados, imagens geradas pela IA e empresas cadastradas.</p>
+          </div>
+          <button className="button button-secondary" onClick={logout}>Sair</button>
+        </section>
+
+        {overview === undefined ? (
+          <section className="shell admin-loading">Carregando dados...</section>
+        ) : !overview.ok ? (
+          <section className="shell admin-error">
+            <strong>{overview.error}</strong>
+            <button className="button" onClick={logout}>Tentar outra senha</button>
+          </section>
+        ) : (
+          <>
+            <section className="admin-stats shell">
+              <article><FiInbox /><strong>{overview.leads.length}</strong><span>Leads recentes</span></article>
+              <article><FiUsers /><strong>{overview.partners.length}</strong><span>Empresas recentes</span></article>
+              <article><FiImage /><strong>{overview.simulations.length}</strong><span>Simulações recentes</span></article>
+            </section>
+
+            <section className="admin-section shell">
+              <div className="section-heading">
+                <div><p className="eyebrow">Moradores</p><h2>Leads com imagens</h2></div>
+              </div>
+              <div className="admin-list">
+                {overview.leads.length ? overview.leads.map((lead) => (
+                  <AdminLeadCard lead={lead} key={lead._id} />
+                )) : <p className="admin-empty">Nenhum lead de morador ainda.</p>}
+              </div>
+            </section>
+
+            <section className="admin-section shell">
+              <div className="section-heading">
+                <div><p className="eyebrow">Empresas</p><h2>Parceiros cadastrados</h2></div>
+              </div>
+              <div className="admin-list compact">
+                {overview.partners.length ? overview.partners.map((partner) => (
+                  <AdminPartnerCard partner={partner} key={partner._id} />
+                )) : <p className="admin-empty">Nenhuma empresa cadastrada ainda.</p>}
+              </div>
+            </section>
+
+            <section className="admin-section shell">
+              <div className="section-heading">
+                <div><p className="eyebrow">Banco de imagens</p><h2>Simulações recentes</h2></div>
+              </div>
+              <div className="admin-list">
+                {overview.simulations.length ? overview.simulations.map((simulation) => (
+                  <AdminSimulationCard simulation={simulation} key={simulation._id} />
+                )) : <p className="admin-empty">Nenhuma simulação salva ainda.</p>}
+              </div>
+            </section>
+          </>
+        )}
+      </main>
+      <Footer />
+    </>
+  );
+}
+
 function PrivacyPage() {
   return (
     <>
@@ -1026,11 +1267,11 @@ function PrivacyPage() {
         <h1>Política de privacidade</h1>
         <p className="privacy-lead">Última atualização: 15 de junho de 2026.</p>
         {[
-          ["1. Imagens da fachada", "Você envia a imagem voluntariamente para criar simulações de portões. Neste MVP, a foto é transmitida ao backend e à OpenAI para gerar a transformação, mas não é salva no banco do Meu Portão IA."],
-          ["2. Dados de contato", "Nome, WhatsApp, cidade, bairro e preferências são salvos no Convex quando você solicita orçamento ou demonstra interesse em ser parceiro."],
-          ["3. Compartilhamento", "Seus dados poderão ser compartilhados com empresas parceiras somente quando você marcar a autorização no formulário de orçamento."],
+          ["1. Imagens da fachada", "Você envia a imagem voluntariamente para criar simulações de portões. A foto original e as imagens geradas pela IA podem ser salvas no Convex Storage para que a equipe do Meu Portão IA consiga acompanhar o pedido e encaminhar o contexto correto aos parceiros."],
+          ["2. Dados de contato", "Nome, WhatsApp, cidade, bairro, preferências e o modelo escolhido são salvos no Convex quando você solicita orçamento ou demonstra interesse em ser parceiro."],
+          ["3. Compartilhamento", "Seus dados e imagens relacionadas ao pedido poderão ser compartilhados com empresas parceiras somente quando você marcar a autorização no formulário de orçamento."],
           ["4. Exclusão", "Você pode solicitar a exclusão dos dados enviados pelos canais de contato da plataforma. A versão futura terá um fluxo dedicado para esse pedido."],
-          ["5. Natureza do projeto", "O Meu Portão IA apresentado aqui é um MVP demonstrativo. Não há pagamento, autenticação ou armazenamento permanente das imagens enviadas nesta versão."],
+          ["5. Natureza do projeto", "O Meu Portão IA apresentado aqui é um MVP demonstrativo. Não há pagamento no site, e o acesso interno aos leads é protegido por senha administrativa."],
         ].map(([title, text]) => <section key={title}><h2>{title}</h2><p>{text}</p></section>)}
         <div className="privacy-note"><FiShield /><div><strong>Privacidade por escolha</strong><p>Nunca autorizamos o contato de parceiros sem seu consentimento explícito.</p></div></div>
       </main>
@@ -1054,6 +1295,7 @@ export function App({ backendEnabled = false }) {
     if (path === "/") return <HomePage />;
     if (path === "/simular") return <SimulatorPage backendEnabled={backendEnabled} />;
     if (path === "/empresas") return <CompaniesPage backendEnabled={backendEnabled} />;
+    if (path === "/admin") return <AdminPage backendEnabled={backendEnabled} />;
     if (path === "/privacidade") return <PrivacyPage />;
     return <NotFound />;
   }, [path, backendEnabled]);

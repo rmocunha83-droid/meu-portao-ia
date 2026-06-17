@@ -4,6 +4,8 @@ dist/
 .npm-cache/
 .DS_Store
 *.log
+output/
 .vercel
 
 .env.local
+.admin-secret.local

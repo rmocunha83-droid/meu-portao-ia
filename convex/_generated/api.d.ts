@@ -10,6 +10,7 @@
 
 import type * as http from "../http.js";
 import type * as leads from "../leads.js";
+import type * as simulations from "../simulations.js";
 
 import type {
   ApiFromModules,
@@ -20,6 +21,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   http: typeof http;
   leads: typeof leads;
+  simulations: typeof simulations;
 }>;
 
 /**
